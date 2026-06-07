@@ -123,29 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return noDiacritics;
     }
 
-    // Formatar número de telefone brasileiro
+    // Retornar apenas os números sem formatação
     function formatBrazilianPhone(digits) {
-        digits = digits.replace(/\D/g, '');
-        if (digits.length === 0) return '';
-        if (digits.length <= 2) return digits;
-        if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits.slice(2)}`;
-        if (digits.length <= 11) {
-            if (digits[2] === '9') {
-                return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
-            } else {
-                return `(${digits.slice(0, 2)})${digits.slice(2, 6)}-${digits.slice(6)}`;
-            }
-        }
-        if (digits.length >= 12) {
-            const areaCode = digits.slice(0, 2);
-            const rest = digits.slice(2);
-            if (rest[0] === '9') {
-                return `+55 (${areaCode})${rest.slice(0, 5)}-${rest.slice(5)}`;
-            } else {
-                return `+55 (${areaCode})${rest.slice(0, 4)}-${rest.slice(4)}`;
-            }
-        }
-        return digits;
+        return digits.replace(/\D/g, '');
     }
 
     function updateTime() {

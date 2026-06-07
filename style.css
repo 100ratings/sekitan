@@ -270,12 +270,15 @@ body {
 }
 
 .number-view {
-    font-size: 52px;
+    font-size: 28px;
     font-weight: 300;
-    min-height: 52px;
+    min-height: 32px;
     margin-bottom: 8px;
     color: white;
-    word-break: break-all;
+    word-break: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .add-contact-btn {
