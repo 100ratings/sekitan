@@ -1,0 +1,431 @@
+:root {
+    /* ========================================== */
+    /* CONFIGURAÇÃO DE POSIÇÃO (AJUSTE AQUI)      */
+    /* ========================================== */
+    --phone-offset-x: 0px; /* Esquerda (-) ou Direita (+) */
+    --phone-offset-y: 0px; /* Cima (-) ou Baixo (+) */
+    /* ========================================== */
+
+    --bg-color: #000;
+    --text-color: #fff;
+    --btn-bg: #222;
+    --btn-active: #444;
+    --call-color: #34c759;
+    --call-active: #2da14c;
+    --primary-blue: #0c84ff;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: #000;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(12, 132, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(52, 199, 89, 0.05) 0%, transparent 40%);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    /* Removido overflow: hidden para permitir movimento livre */
+}
+
+/* Compact Controls Panel */
+.controls-panel {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(20px);
+    padding: 15px 20px;
+    border-radius: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 999999;
+    box-shadow: 0 -15px 40px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    max-width: 90vw;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.compact-select {
+    flex: 1;
+    min-width: 0;
+    max-width: 200px;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 25px;
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compact-select option {
+    background: #222;
+    color: white;
+}
+
+.icon-btn {
+    flex: 0 0 50px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-weight: 400;
+}
+
+.icon-btn.compact {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    flex: 0 0 40px;
+}
+
+.icon-btn.mini {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    flex: 0 0 28px;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
+}
+
+.icon-btn:active {
+    transform: scale(0.95);
+}
+
+.icon-btn.highlight {
+    background: var(--primary-blue);
+}
+
+.icon-btn.highlight:hover {
+    background: #0070e0;
+}
+
+.divider {
+    width: 1px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 5px;
+}
+
+/* Scale Controls */
+.scale-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.scale-display {
+    min-width: 45px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+/* Position Controls */
+.position-controls {
+    display: flex;
+    align-items: center;
+}
+
+.pos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 2px;
+    align-items: center;
+    justify-items: center;
+}
+
+.empty {
+    width: 28px;
+    height: 28px;
+}
+
+/* Phone Wrapper & Scaling */
+#phone-wrapper {
+    position: absolute;
+    top: var(--phone-offset-y);
+    left: var(--phone-offset-x);
+    width: 100vw;
+    height: 100vh;
+    /* Removido overflow: hidden para evitar cortes ao mover */
+    pointer-events: none; /* Permite clicar através do wrapper se necessário */
+}
+
+.phone-container {
+    width: 420px;
+    height: 900px;
+    background: #000;
+    border-radius: 50px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-left: -210px;
+    margin-top: -450px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 50px 100px rgba(0,0,0,0.8), 0 0 0 10px rgba(255,255,255,0.02);
+    overflow: hidden;
+    border: 8px solid #1a1a1a;
+    transform-origin: center center;
+    will-change: transform;
+    transition: transform 0.3s ease-out;
+    pointer-events: auto; /* Garante que os cliques funcionem no telefone */
+}
+
+.close-btn {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 59, 48, 0.2);
+    color: #ff3b30;
+    border: 1px solid rgba(255, 59, 48, 0.5);
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: rgba(255, 59, 48, 0.8);
+    color: white;
+}
+
+.resize-handle {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+    z-index: 100;
+    cursor: se-resize;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    transition: background 0.2s;
+}
+
+.resize-handle:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 18px 30px 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.display {
+    height: 240px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 25px;
+}
+
+.number-view {
+    font-size: 52px;
+    font-weight: 300;
+    min-height: 52px;
+    margin-bottom: 8px;
+    color: white;
+    word-break: break-all;
+}
+
+.add-contact-btn {
+    color: var(--primary-blue);
+    font-size: 16px;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.add-contact-btn.visible {
+    opacity: 1;
+}
+
+.keypad {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 45px;
+}
+
+.row {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.key {
+    width: 78px;
+    height: 78px;
+    background: var(--btn-bg);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.key:hover {
+    background: #333;
+}
+
+.key:active {
+    background: var(--btn-active);
+    transform: scale(0.94);
+}
+
+.key .number {
+    font-size: 32px;
+    font-weight: 400;
+}
+
+.key .letters {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 1px;
+    margin-top: 2px;
+}
+
+.row.actions {
+    justify-content: center;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.spacer {
+    width: 78px;
+}
+
+.call-btn {
+    width: 78px;
+    height: 78px;
+    background: var(--call-color);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 0 10px;
+}
+
+.call-btn:active {
+    background: var(--call-active);
+    transform: scale(0.94);
+}
+
+.backspace-btn {
+    width: 78px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 26px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.backspace-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.tab-bar {
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 10px 34px;
+    background: rgba(20, 20, 20, 0.9);
+    backdrop-filter: blur(20px);
+}
+
+.tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #8e8e93;
+    flex: 1;
+}
+
+.tab.active {
+    color: var(--primary-blue);
+}
+
+.tab .icon {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+
+.tab .label {
+    font-size: 11px;
+}
+
+.phone-container.active-phone {
+    box-shadow: 0 0 0 3px #0A84FF, 0 20px 40px rgba(0,0,0,0.4);
+}
+
+@media (max-width: 800px) {
+    .controls-panel {
+        top: 20px;
+        width: 90%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}

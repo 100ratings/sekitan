@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T9T - Scanner Training Phone Dialer</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="controls-panel">
+        <select id="list-select" class="compact-select">
+            <option value="all" selected>📚 Todas as Listas</option>
+            <option value="nomes">👤 Nomes</option>
+            <option value="objetos">🎁 Objetos</option>
+            <option value="paises">🌍 Países</option>
+            <option value="animais">🐾 Animais</option>
+            <option value="dicionario">📖 Dicionário</option>
+        </select>
+        <button id="add-phone-btn" class="icon-btn" title="Adicionar Telefone">+</button>
+        <button id="generate-btn" class="icon-btn highlight" title="Gerar">🎲</button>
+        <button id="reveal-btn" class="icon-btn" title="Revelar/Ocultar">👁️</button>
+        
+        <div class="divider"></div>
+
+        <div class="scale-controls">
+            <button id="scale-down-btn" class="icon-btn compact" title="Diminuir Tamanho">−</button>
+            <span id="scale-display" class="scale-display">100%</span>
+            <button id="scale-up-btn" class="icon-btn compact" title="Aumentar Tamanho">+</button>
+            <button id="scale-reset-btn" class="icon-btn compact" title="Resetar Tamanho">⟲</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="position-controls">
+            <div class="pos-grid">
+                <div class="empty"></div>
+                <button id="pos-up-btn" class="icon-btn mini" title="Mover para Cima">↑</button>
+                <div class="empty"></div>
+                <button id="pos-left-btn" class="icon-btn mini" title="Mover para Esquerda">←</button>
+                <button id="pos-reset-btn" class="icon-btn mini" title="Resetar Posição">⌖</button>
+                <button id="pos-right-btn" class="icon-btn mini" title="Mover para Direita">→</button>
+                <div class="empty"></div>
+                <button id="pos-down-btn" class="icon-btn mini" title="Mover para Baixo">↓</button>
+                <div class="empty"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="phone-wrapper"></div>
+
+
+
+    <script src="celebData.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
