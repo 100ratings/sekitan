@@ -382,7 +382,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const numberDisplay = phone.querySelector('.number-view');
                 phone.dataset.displayValue = randomWord.name;
                 phone.dataset.t9Value = randomWord.t9;
-                numberDisplay.textContent = formatBrazilianPhone(randomWord.t9);
+                
+                if (isRevealed) {
+                    numberDisplay.textContent = randomWord.name;
+                } else {
+                    numberDisplay.textContent = formatBrazilianPhone(randomWord.t9);
+                }
+                
                 phone.querySelector('.add-contact-btn').classList.add('visible');
                 phone.querySelector('.backspace-btn').classList.add('visible');
             });
@@ -393,12 +399,15 @@ document.addEventListener('DOMContentLoaded', () => {
         isRevealed = !isRevealed;
         phones.forEach(phone => {
             const numberDisplay = phone.querySelector('.number-view');
-            const t9Value = phone.dataset.t9Value;
-            const displayValue = phone.dataset.displayValue;
+            const t9Value = phone.dataset.t9Value || '';
+            const displayValue = phone.dataset.displayValue || '';
+            
             if (isRevealed && displayValue) {
                 numberDisplay.textContent = displayValue;
             } else if (t9Value) {
                 numberDisplay.textContent = formatBrazilianPhone(t9Value);
+            } else {
+                numberDisplay.textContent = '';
             }
         });
     });
