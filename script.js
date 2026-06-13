@@ -398,13 +398,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     generateBtn.addEventListener('click', () => {
         if (currentWordList.length > 0) {
+            // Sempre resetar para oculto ao gerar novas palavras
+            isRevealed = false;
+            
             phones.forEach(phone => {
                 const randomWord = currentWordList[Math.floor(Math.random() * currentWordList.length)];
                 const numberDisplay = phone.querySelector('.number-view');
                 phone.dataset.displayValue = randomWord.name;
                 phone.dataset.t9Value = randomWord.t9;
                 
-                let textToDisplay = isRevealed ? randomWord.name : formatBrazilianPhone(randomWord.t9);
+                // Sempre mostrar o T9 (números) ao gerar
+                let textToDisplay = formatBrazilianPhone(randomWord.t9);
                 numberDisplay.textContent = textToDisplay;
                 
                 // Ajustar fonte para o novo texto gerado
