@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const posDownBtn = document.getElementById('pos-down-btn');
     const posLeftBtn = document.getElementById('pos-left-btn');
     const posRightBtn = document.getElementById('pos-right-btn');
-    const posResetBtn = document.getElementById('pos-reset-btn');
     
     // Aplicar o offset inicial via propriedades de posição
     if (config.offsetX !== 0) phoneWrapper.style.left = `${config.offsetX}px`;
@@ -35,7 +34,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentScale = config.scale;
     let currentOffsetX = config.offsetX;
     let currentOffsetY = config.offsetY;
-    const POSITION_STEP = 20; // pixels por clique
+    
+    // O usuário quer 1% de movimento. 
+    // Como o wrapper é baseado em pixels, vamos definir um passo pequeno.
+    // Considerando uma tela padrão de 1920px, 1% seria ~19px.
+    // Mas o usuário disse "se tiver mexer um, ele vai 5%... eu quero 1%".
+    // Vou usar um valor de 1 pixel para precisão máxima ou algo proporcional.
+    // Vamos usar 2px como um passo "preciso".
+    const POSITION_STEP = 2; 
 
     let currentWordList = [];
     let isRevealed = false;
@@ -82,14 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveConfig({ offsetX: currentOffsetX, offsetY: currentOffsetY, scale: currentScale });
     }
 
-    function resetPosition() {
-        currentOffsetX = 0;
-        currentOffsetY = 0;
-        phoneWrapper.style.left = '0px';
-        phoneWrapper.style.top = '0px';
-        saveConfig({ offsetX: currentOffsetX, offsetY: currentOffsetY, scale: currentScale });
-    }
-
     if (scaleUpBtn) scaleUpBtn.addEventListener('click', increaseScale);
     if (scaleDownBtn) scaleDownBtn.addEventListener('click', decreaseScale);
     if (scaleResetBtn) scaleResetBtn.addEventListener('click', resetScale);
@@ -97,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (posDownBtn) posDownBtn.addEventListener('click', () => movePosition(0, POSITION_STEP));
     if (posLeftBtn) posLeftBtn.addEventListener('click', () => movePosition(-POSITION_STEP, 0));
     if (posRightBtn) posRightBtn.addEventListener('click', () => movePosition(POSITION_STEP, 0));
-    if (posResetBtn) posResetBtn.addEventListener('click', resetPosition);
 
     updateScaleDisplay();
 
@@ -123,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return noDiacritics;
     }
 
-    // Retornar apenas os números sem formatação
     function formatBrazilianPhone(digits) {
         return digits.replace(/\D/g, '');
     }
@@ -186,7 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
             scale = Math.min(scaleByWidth, scaleByHeight, 1);
         }
         
-        // Aplicar a escala manual do usuário ao scale automático
         const finalScale = scale * currentScale;
         
         scaledWidth = phoneBaseWidth * finalScale;
@@ -224,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="display">
                     <div class="number-view"></div>
-                    <div class="add-contact-btn">Adicionar número</div>
+                    <div class="add-contact-btn">Adicionar Número</div>
                 </div>
                 <div class="keypad">
                     <div class="row">
@@ -281,14 +276,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const keys = phone.querySelectorAll('.key');
         const callBtn = phone.querySelector('.call-btn');
 
-        function updateDisplay() {
-            if (isRevealed && displayValue) {
-                numberDisplay.textContent = displayValue;
-            } else if (currentT9Value) {
-                numberDisplay.textContent = formatBrazilianPhone(currentT9Value);
+        function adjustFontSize(text) {
+            const maxLength = 21;
+            const defaultFontSize = 32;
+            if (text.length > maxLength) {
+                // Cálculo para diminuir a fonte proporcionalmente
+                // Se 21 cabe com 32px, então a largura total é ~21 * fator
+                // Fator aproximado para manter na mesma linha
+                const newSize = Math.floor((maxLength / text.length) * defaultFontSize);
+                numberDisplay.style.fontSize = `${Math.max(newSize, 12)}px`; // Mínimo de 12px para legibilidade
             } else {
-                numberDisplay.textContent = '';
+                numberDisplay.style.fontSize = `${defaultFontSize}px`;
             }
+        }
+
+        function updateDisplay() {
+            let textToDisplay = '';
+            if (isRevealed && displayValue) {
+                textToDisplay = displayValue;
+            } else if (currentT9Value) {
+                textToDisplay = formatBrazilianPhone(currentT9Value);
+            }
+            
+            numberDisplay.textContent = textToDisplay;
+            adjustFontSize(textToDisplay);
+            
             addContactBtn.classList.toggle('visible', currentT9Value.length > 0);
             backspaceBtn.classList.toggle('visible', currentT9Value.length > 0);
         }
@@ -344,25 +356,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const deltaY = e.clientY - startY;
             phone.style.left = (startLeft + deltaX) + 'px';
             phone.style.top = (startTop + deltaY) + 'px';
-            phone.style.transform = 'scale(0.8)';
         });
 
-        document.addEventListener('mouseup', () => { isDragging = false; });
+        document.addEventListener('mouseup', () => { 
+            if (isDragging) {
+                isDragging = false;
+                phone.classList.remove('active-phone');
+            }
+        });
 
         let isResizing = false;
-        let startScale = 0.8;
+        let startScale = 1;
 
         resizeHandle.addEventListener('mousedown', (e) => {
             e.preventDefault();
             isResizing = true;
             startX = e.clientX;
             startY = e.clientY;
+            const transform = window.getComputedStyle(phone).getPropertyValue('transform');
+            if (transform !== 'none') {
+                const values = transform.split('(')[1].split(')')[0].split(',');
+                startScale = parseFloat(values[0]);
+            }
         });
 
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
             const delta = Math.max(e.clientX - startX, e.clientY - startY);
-            const newScale = Math.max(0.5, Math.min(1.2, startScale + delta * 0.005));
+            const newScale = Math.max(0.5, Math.min(1.5, startScale + delta * 0.005));
             phone.style.transform = `scale(${newScale})`;
         });
 
@@ -383,10 +404,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 phone.dataset.displayValue = randomWord.name;
                 phone.dataset.t9Value = randomWord.t9;
                 
-                if (isRevealed) {
-                    numberDisplay.textContent = randomWord.name;
+                let textToDisplay = isRevealed ? randomWord.name : formatBrazilianPhone(randomWord.t9);
+                numberDisplay.textContent = textToDisplay;
+                
+                // Ajustar fonte para o novo texto gerado
+                const maxLength = 21;
+                const defaultFontSize = 32;
+                if (textToDisplay.length > maxLength) {
+                    const newSize = Math.floor((maxLength / textToDisplay.length) * defaultFontSize);
+                    numberDisplay.style.fontSize = `${Math.max(newSize, 12)}px`;
                 } else {
-                    numberDisplay.textContent = formatBrazilianPhone(randomWord.t9);
+                    numberDisplay.style.fontSize = `${defaultFontSize}px`;
                 }
                 
                 phone.querySelector('.add-contact-btn').classList.add('visible');
@@ -402,12 +430,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const t9Value = phone.dataset.t9Value || '';
             const displayValue = phone.dataset.displayValue || '';
             
+            let textToDisplay = '';
             if (isRevealed && displayValue) {
-                numberDisplay.textContent = displayValue;
+                textToDisplay = displayValue;
             } else if (t9Value) {
-                numberDisplay.textContent = formatBrazilianPhone(t9Value);
+                textToDisplay = formatBrazilianPhone(t9Value);
+            }
+            
+            numberDisplay.textContent = textToDisplay;
+            
+            // Ajustar fonte ao revelar/ocultar
+            const maxLength = 21;
+            const defaultFontSize = 32;
+            if (textToDisplay.length > maxLength) {
+                const newSize = Math.floor((maxLength / textToDisplay.length) * defaultFontSize);
+                numberDisplay.style.fontSize = `${Math.max(newSize, 12)}px`;
             } else {
-                numberDisplay.textContent = '';
+                numberDisplay.style.fontSize = `${defaultFontSize}px`;
             }
         });
     });
@@ -416,8 +455,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentListCategory = listSelect.value;
         loadSekitanData(currentListCategory);
     });
-
-        // CSV import removed as requested
 
     loadSekitanData();
     createPhoneInstance();

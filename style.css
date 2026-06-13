@@ -33,7 +33,8 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    /* Removido overflow: hidden para permitir movimento livre */
+    overflow-x: auto; /* Permite rolagem horizontal */
+    overflow-y: hidden; /* Remove a barra de rolagem vertical */
 }
 
 /* Compact Controls Panel */
@@ -277,8 +278,10 @@ body {
     color: white;
     word-break: normal;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible; /* Mudado para visible para que o cálculo da fonte seja a única restrição */
+    text-align: center;
+    width: 100%;
+    padding: 0 10px;
 }
 
 .add-contact-btn {
