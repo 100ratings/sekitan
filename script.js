@@ -27,27 +27,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const posLeftBtn = document.getElementById('pos-left-btn');
     const posRightBtn = document.getElementById('pos-right-btn');
     
-    // Aplicar o offset inicial via propriedades de posição
     if (config.offsetX !== 0) phoneWrapper.style.left = `${config.offsetX}px`;
     if (config.offsetY !== 0) phoneWrapper.style.top = `${config.offsetY}px`;
 
     let currentScale = config.scale;
     let currentOffsetX = config.offsetX;
     let currentOffsetY = config.offsetY;
-    
-    // O usuário quer 1% de movimento. 
-    // Como o wrapper é baseado em pixels, vamos definir um passo pequeno.
-    // Considerando uma tela padrão de 1920px, 1% seria ~19px.
-    // Mas o usuário disse "se tiver mexer um, ele vai 5%... eu quero 1%".
-    // Vou usar um valor de 1 pixel para precisão máxima ou algo proporcional.
-    // Vamos usar 2px como um passo "preciso".
     const POSITION_STEP = 2; 
 
     let currentWordList = [];
     let isRevealed = false;
-    let zIndex = 1000;
-    const phones = [];
-    let currentListCategory = 'all';
+    let phones = [];
+    let currentListCategory = 'dicionario'; // Padrão inicial
 
     function updateScaleDisplay() {
         if (scaleDisplay) {
@@ -136,25 +127,36 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTime();
     setInterval(updateTime, 1000);
 
-    function loadSekitanData(category = 'all') {
-        let words = [];
-        if (window.SEKITAN_LISTS) {
-            if (category === 'all') {
-                words = [
-                    ...window.SEKITAN_LISTS.nomes || [],
-                    ...window.SEKITAN_LISTS.objetos || [],
-                    ...window.SEKITAN_LISTS.paises || [],
-                    ...window.SEKITAN_LISTS.animais || [],
-                    ...window.SEKITAN_LISTS.dicionario || []
-                ];
-            } else {
-                words = window.SEKITAN_LISTS[category] || [];
-            }
+    function loadSekitanData(category = 'dicionario') {
+        let source = [];
+        const data = window.SEKITAN_DATA;
+        
+        if (category === 'all') {
+            source = [...data.NOMES, ...data.OBJETOS, ...data.PAISES, ...data.ANIMAIS, ...data.DICIONARIO];
+        } else {
+            const key = category.toUpperCase();
+            source = data[key] || [];
         }
-        currentWordList = words.map(word => ({
-            name: word,
-            t9: convertToT9(word)
+
+        currentWordList = source.map(item => ({
+            name: item.w,
+            score: item.s,
+            t9: convertToT9(item.w)
         }));
+    }
+
+    function getWeightedRandom(matches) {
+        if (matches.length === 0) return null;
+        const totalScore = matches.reduce((sum, item) => sum + item.score, 0);
+        if (totalScore === 0) {
+            return matches[Math.floor(Math.random() * matches.length)];
+        }
+        let random = Math.random() * totalScore;
+        for (const item of matches) {
+            if (random < item.score) return item;
+            random -= item.score;
+        }
+        return matches[matches.length - 1];
     }
 
     function updatePhonePositions() {
@@ -169,8 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const gap = Math.max(10, Math.min(30, availableWidth * 0.02));
         
         let scale = 1;
-        let scaledWidth = phoneBaseWidth;
-        
         if (count === 1) {
             const scaleByWidth = availableWidth / phoneBaseWidth;
             const scaleByHeight = availableHeight / phoneBaseHeight;
@@ -183,20 +183,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const finalScale = scale * currentScale;
-        
-        scaledWidth = phoneBaseWidth * finalScale;
+        const scaledWidth = phoneBaseWidth * finalScale;
         const scaledHeight = phoneBaseHeight * finalScale;
         const topOffset = (wrapperHeight - scaledHeight) / 2;
         
         phones.forEach((phone, index) => {
-            let xPosition;
-            if (count === 1) {
-                xPosition = (wrapperWidth - scaledWidth) / 2;
-            } else {
-                const totalWidthUsed = (scaledWidth * count) + (gap * (count - 1));
-                const startX = (wrapperWidth - totalWidthUsed) / 2;
-                xPosition = startX + (index * (scaledWidth + gap));
-            }
+            const totalWidthUsed = (scaledWidth * count) + (gap * (count - 1));
+            const startX = (wrapperWidth - totalWidthUsed) / 2;
+            const xPosition = startX + (index * (scaledWidth + gap));
+            
             phone.style.left = xPosition + 'px';
             phone.style.top = topOffset + 'px';
             phone.style.transform = `scale(${finalScale})`;
@@ -266,201 +261,118 @@ document.addEventListener('DOMContentLoaded', () => {
         phoneWrapper.appendChild(phone);
         phones.push(phone);
 
-        let displayValue = '';
-        let currentT9Value = '';
+        phone._state = { t9: '', word: '' };
+
         const numberDisplay = phone.querySelector('.number-view');
         const addContactBtn = phone.querySelector('.add-contact-btn');
         const backspaceBtn = phone.querySelector('.backspace-btn');
         const closeBtn = phone.querySelector('.close-btn');
-        const resizeHandle = phone.querySelector('.resize-handle');
         const keys = phone.querySelectorAll('.key');
         const callBtn = phone.querySelector('.call-btn');
 
         function adjustFontSize(text) {
-            const maxLength = 21;
             const defaultFontSize = 32;
-            if (text.length > maxLength) {
-                // Cálculo para diminuir a fonte proporcionalmente
-                // Se 21 cabe com 32px, então a largura total é ~21 * fator
-                // Fator aproximado para manter na mesma linha
-                const newSize = Math.floor((maxLength / text.length) * defaultFontSize);
-                numberDisplay.style.fontSize = `${Math.max(newSize, 12)}px`; // Mínimo de 12px para legibilidade
+            const minFontSize = 10;
+            // O visor comporta confortavelmente cerca de 13 caracteres com 32px.
+            // A partir daí, começamos a reduzir.
+            const threshold = 13; 
+            
+            if (text.length > threshold) {
+                // Redução proporcional baseada no comprimento
+                const newSize = (threshold / text.length) * defaultFontSize;
+                // Ajuste extra para garantir que caiba (fator de segurança 0.95)
+                const safeSize = Math.floor(newSize * 0.95);
+                numberDisplay.style.fontSize = `${Math.max(safeSize, minFontSize)}px`;
             } else {
                 numberDisplay.style.fontSize = `${defaultFontSize}px`;
             }
         }
 
-        function updateDisplay() {
+        phone._updateDisplay = function() {
             let textToDisplay = '';
-            if (isRevealed && displayValue) {
-                textToDisplay = displayValue;
-            } else if (currentT9Value) {
-                textToDisplay = formatBrazilianPhone(currentT9Value);
+            if (isRevealed && phone._state.word) {
+                textToDisplay = phone._state.word;
+            } else if (phone._state.t9) {
+                textToDisplay = formatBrazilianPhone(phone._state.t9);
             }
             
             numberDisplay.textContent = textToDisplay;
             adjustFontSize(textToDisplay);
-            
-            addContactBtn.classList.toggle('visible', currentT9Value.length > 0);
-            backspaceBtn.classList.toggle('visible', currentT9Value.length > 0);
-        }
+            addContactBtn.classList.toggle('visible', phone._state.t9.length > 0);
+            backspaceBtn.classList.toggle('visible', phone._state.t9.length > 0);
+        };
+
+        phone._generateRandom = function() {
+            if (currentWordList.length > 0) {
+                const picked = getWeightedRandom(currentWordList);
+                if (picked) {
+                    phone._state.t9 = picked.t9;
+                    phone._state.word = picked.name;
+                    phone._updateDisplay();
+                }
+            }
+        };
 
         keys.forEach(key => {
             key.addEventListener('click', () => {
-                currentT9Value += key.dataset.value;
-                updateDisplay();
+                phone._state.t9 += key.dataset.value;
+                phone._state.word = '';
+                phone._updateDisplay();
             });
         });
 
         backspaceBtn.addEventListener('click', () => {
-            currentT9Value = currentT9Value.slice(0, -1);
-            displayValue = '';
-            updateDisplay();
+            phone._state.t9 = phone._state.t9.slice(0, -1);
+            phone._state.word = '';
+            phone._updateDisplay();
         });
 
         callBtn.addEventListener('click', () => {
-            if (currentT9Value && currentWordList.length > 0) {
-                const matches = currentWordList.filter(w => w.t9 === currentT9Value);
-                if (matches.length > 0) {
-                    const randomMatch = matches[Math.floor(Math.random() * matches.length)];
-                    displayValue = randomMatch.name;
-                    updateDisplay();
+            if (phone._state.t9 && currentWordList.length > 0) {
+                const matches = currentWordList.filter(w => w.t9 === phone._state.t9);
+                const picked = getWeightedRandom(matches);
+                if (picked) {
+                    phone._state.word = picked.name;
+                    phone._updateDisplay();
                 }
             }
         });
 
         closeBtn.addEventListener('click', () => {
             phone.remove();
-            phones.splice(phones.indexOf(phone), 1);
+            phones = phones.filter(p => p !== phone);
             updatePhonePositions();
         });
 
-        let isDragging = false;
-        let startX, startY, startLeft, startTop;
-
-        phone.addEventListener('mousedown', (e) => {
-            if (e.target === closeBtn || e.target === resizeHandle || e.target.closest('.key') || e.target.closest('.backspace-btn') || e.target.closest('.call-btn')) return;
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            const rect = phone.getBoundingClientRect();
-            startLeft = rect.left;
-            startTop = rect.top;
-            phone.classList.add('active-phone');
-            phone.style.zIndex = ++zIndex;
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            phone.style.left = (startLeft + deltaX) + 'px';
-            phone.style.top = (startTop + deltaY) + 'px';
-        });
-
-        document.addEventListener('mouseup', () => { 
-            if (isDragging) {
-                isDragging = false;
-                phone.classList.remove('active-phone');
-            }
-        });
-
-        let isResizing = false;
-        let startScale = 1;
-
-        resizeHandle.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            isResizing = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            const transform = window.getComputedStyle(phone).getPropertyValue('transform');
-            if (transform !== 'none') {
-                const values = transform.split('(')[1].split(')')[0].split(',');
-                startScale = parseFloat(values[0]);
-            }
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-            const delta = Math.max(e.clientX - startX, e.clientY - startY);
-            const newScale = Math.max(0.5, Math.min(1.5, startScale + delta * 0.005));
-            phone.style.transform = `scale(${newScale})`;
-        });
-
-        document.addEventListener('mouseup', () => { isResizing = false; });
-
-        updateDisplay();
         updatePhonePositions();
-        return phone;
+        phone._updateDisplay();
     }
 
     addPhoneBtn.addEventListener('click', createPhoneInstance);
 
     generateBtn.addEventListener('click', () => {
-        if (currentWordList.length > 0) {
-            // Sempre resetar para oculto ao gerar novas palavras
-            isRevealed = false;
-            
-            phones.forEach(phone => {
-                const randomWord = currentWordList[Math.floor(Math.random() * currentWordList.length)];
-                const numberDisplay = phone.querySelector('.number-view');
-                phone.dataset.displayValue = randomWord.name;
-                phone.dataset.t9Value = randomWord.t9;
-                
-                // Sempre mostrar o T9 (números) ao gerar
-                let textToDisplay = formatBrazilianPhone(randomWord.t9);
-                numberDisplay.textContent = textToDisplay;
-                
-                // Ajustar fonte para o novo texto gerado
-                const maxLength = 21;
-                const defaultFontSize = 32;
-                if (textToDisplay.length > maxLength) {
-                    const newSize = Math.floor((maxLength / textToDisplay.length) * defaultFontSize);
-                    numberDisplay.style.fontSize = `${Math.max(newSize, 12)}px`;
-                } else {
-                    numberDisplay.style.fontSize = `${defaultFontSize}px`;
-                }
-                
-                phone.querySelector('.add-contact-btn').classList.add('visible');
-                phone.querySelector('.backspace-btn').classList.add('visible');
-            });
-        }
+        isRevealed = false;
+        revealBtn.textContent = '👁️';
+        phones.forEach(p => {
+            if (p._generateRandom) p._generateRandom();
+        });
     });
 
     revealBtn.addEventListener('click', () => {
         isRevealed = !isRevealed;
-        phones.forEach(phone => {
-            const numberDisplay = phone.querySelector('.number-view');
-            const t9Value = phone.dataset.t9Value || '';
-            const displayValue = phone.dataset.displayValue || '';
-            
-            let textToDisplay = '';
-            if (isRevealed && displayValue) {
-                textToDisplay = displayValue;
-            } else if (t9Value) {
-                textToDisplay = formatBrazilianPhone(t9Value);
-            }
-            
-            numberDisplay.textContent = textToDisplay;
-            
-            // Ajustar fonte ao revelar/ocultar
-            const maxLength = 21;
-            const defaultFontSize = 32;
-            if (textToDisplay.length > maxLength) {
-                const newSize = Math.floor((maxLength / textToDisplay.length) * defaultFontSize);
-                numberDisplay.style.fontSize = `${Math.max(newSize, 12)}px`;
-            } else {
-                numberDisplay.style.fontSize = `${defaultFontSize}px`;
-            }
+        revealBtn.textContent = isRevealed ? '🙈' : '👁️';
+        phones.forEach(p => {
+            if (p._updateDisplay) p._updateDisplay();
         });
     });
 
-    listSelect.addEventListener('change', () => {
-        currentListCategory = listSelect.value;
+    listSelect.addEventListener('change', (e) => {
+        currentListCategory = e.target.value;
         loadSekitanData(currentListCategory);
     });
 
-    loadSekitanData();
+    // Inicialização
+    loadSekitanData('dicionario'); // Iniciar com dicionário
     createPhoneInstance();
     window.addEventListener('resize', updatePhonePositions);
 });
