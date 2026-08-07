@@ -1,10 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Sistema de persistência local
     const CONFIG_KEY = 't9t-config';
+    const DEFAULT_CONFIG = { offsetX: 0, offsetY: 0, scale: 1, phoneGap: 16 };
     
     function loadConfig() {
         const saved = localStorage.getItem(CONFIG_KEY);
-        return saved ? JSON.parse(saved) : { offsetX: 0, offsetY: 0, scale: 1 };
+        if (!saved) return { ...DEFAULT_CONFIG };
+        try {
+            return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
+        } catch (error) {
+            return { ...DEFAULT_CONFIG };
+        }
     }
     
     function saveConfig(config) {
@@ -22,6 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const scaleDownBtn = document.getElementById('scale-down-btn');
     const scaleResetBtn = document.getElementById('scale-reset-btn');
     const scaleDisplay = document.getElementById('scale-display');
+    const gapDownBtn = document.getElementById('gap-down-btn');
+    const gapUpBtn = document.getElementById('gap-up-btn');
+    const gapResetBtn = document.getElementById('gap-reset-btn');
+    const gapDisplay = document.getElementById('gap-display');
     const posUpBtn = document.getElementById('pos-up-btn');
     const posDownBtn = document.getElementById('pos-down-btn');
     const posLeftBtn = document.getElementById('pos-left-btn');
@@ -33,7 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentScale = config.scale;
     let currentOffsetX = config.offsetX;
     let currentOffsetY = config.offsetY;
-    const POSITION_STEP = 2; 
+    let currentPhoneGap = config.phoneGap;
+    const POSITION_STEP = 2;
+    const GAP_STEP = 4;
+    const MIN_PHONE_GAP = 0;
+    const MAX_PHONE_GAP = 120;
 
     let currentWordList = [];
     let isRevealed = false;
@@ -46,6 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function persistConfig() {
+        saveConfig({
+            offsetX: currentOffsetX,
+            offsetY: currentOffsetY,
+            scale: currentScale,
+            phoneGap: currentPhoneGap
+        });
+    }
+
     function applyScaleToAllPhones() {
         updatePhonePositions();
     }
@@ -54,21 +77,21 @@ document.addEventListener('DOMContentLoaded', () => {
         currentScale = Math.min(currentScale + 0.1, 2);
         applyScaleToAllPhones();
         updateScaleDisplay();
-        saveConfig({ offsetX: currentOffsetX, offsetY: currentOffsetY, scale: currentScale });
+        persistConfig();
     }
 
     function decreaseScale() {
         currentScale = Math.max(currentScale - 0.1, 0.3);
         applyScaleToAllPhones();
         updateScaleDisplay();
-        saveConfig({ offsetX: currentOffsetX, offsetY: currentOffsetY, scale: currentScale });
+        persistConfig();
     }
 
     function resetScale() {
         currentScale = 1;
         applyScaleToAllPhones();
         updateScaleDisplay();
-        saveConfig({ offsetX: currentOffsetX, offsetY: currentOffsetY, scale: currentScale });
+        persistConfig();
     }
 
     function movePosition(dx, dy) {
@@ -76,18 +99,40 @@ document.addEventListener('DOMContentLoaded', () => {
         currentOffsetY += dy;
         phoneWrapper.style.left = `${currentOffsetX}px`;
         phoneWrapper.style.top = `${currentOffsetY}px`;
-        saveConfig({ offsetX: currentOffsetX, offsetY: currentOffsetY, scale: currentScale });
+        persistConfig();
+    }
+
+    function updateGapDisplay() {
+        if (gapDisplay) gapDisplay.textContent = `${currentPhoneGap}px`;
+    }
+
+    function changePhoneGap(delta) {
+        currentPhoneGap = Math.max(MIN_PHONE_GAP, Math.min(MAX_PHONE_GAP, currentPhoneGap + delta));
+        updateGapDisplay();
+        updatePhonePositions();
+        persistConfig();
+    }
+
+    function resetPhoneGap() {
+        currentPhoneGap = DEFAULT_CONFIG.phoneGap;
+        updateGapDisplay();
+        updatePhonePositions();
+        persistConfig();
     }
 
     if (scaleUpBtn) scaleUpBtn.addEventListener('click', increaseScale);
     if (scaleDownBtn) scaleDownBtn.addEventListener('click', decreaseScale);
     if (scaleResetBtn) scaleResetBtn.addEventListener('click', resetScale);
+    if (gapDownBtn) gapDownBtn.addEventListener('click', () => changePhoneGap(-GAP_STEP));
+    if (gapUpBtn) gapUpBtn.addEventListener('click', () => changePhoneGap(GAP_STEP));
+    if (gapResetBtn) gapResetBtn.addEventListener('click', resetPhoneGap);
     if (posUpBtn) posUpBtn.addEventListener('click', () => movePosition(0, -POSITION_STEP));
     if (posDownBtn) posDownBtn.addEventListener('click', () => movePosition(0, POSITION_STEP));
     if (posLeftBtn) posLeftBtn.addEventListener('click', () => movePosition(-POSITION_STEP, 0));
     if (posRightBtn) posRightBtn.addEventListener('click', () => movePosition(POSITION_STEP, 0));
 
     updateScaleDisplay();
+    updateGapDisplay();
 
     const t9Map = {
         'a': '2', 'b': '2', 'c': '2',
@@ -168,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const phoneBaseHeight = 900;
         const availableWidth = wrapperWidth - 60;
         const availableHeight = wrapperHeight - 120;
-        const gap = Math.max(10, Math.min(30, availableWidth * 0.02));
+        const gap = currentPhoneGap;
         
         let scale = 1;
         if (count === 1) {

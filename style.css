@@ -54,10 +54,11 @@ body {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    width: auto;
-    max-width: 90vw;
+    width: max-content;
+    max-width: none;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    white-space: nowrap;
 }
 
 .compact-select {
@@ -141,7 +142,8 @@ body {
 }
 
 /* Scale Controls */
-.scale-controls {
+.scale-controls,
+.spacing-controls {
     display: flex;
     align-items: center;
     gap: 5px;
@@ -430,8 +432,9 @@ body {
 @media (max-width: 800px) {
     .controls-panel {
         top: 20px;
-        width: 90%;
+        width: max-content;
+        max-width: none;
         justify-content: center;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
     }
 }
